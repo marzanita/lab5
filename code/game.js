@@ -18,7 +18,7 @@ function Level(plan) {
       // If the character is ' ', assign null.
 
       var ch = line[x], fieldType = null;
-
+          
       // Use if and else to handle the two cases
       if (ch == "x")
         fieldType = "wall";
@@ -26,6 +26,8 @@ function Level(plan) {
       else if (ch == "!")
         fieldType = "lava";
 
+      //  else if (ch =="y") 
+      //   fieldType = "character";
       // "Push" the fieldType, which is a string, onto the gridLine array (at the end).
       gridLine.push(fieldType);
     }
