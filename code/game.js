@@ -10,27 +10,33 @@ function Level(plan) {
 
   // Loop through each row in the plan, creating an array in our grid
   for (var y = 0; y < this.height; y++) {
-    var line = plan[y], gridLine = [];
-    
+    var line = plan[y],
+      gridLine = [];
+
 
     // Loop through each array element in the inner array for the type of the tile
     for (var x = 0; x < this.width; x++) {
       // Get the type from that character in the string. It can be 'x', '!' or ' '
       // If the character is ' ', assign null.
 
-      var ch = line[x], fieldType = null;
-          
-      // Use if and else to handle the two cases
-      if (ch == "x")
-        fieldType = "wall";
-      // Because there is a third case (space ' '), use an "else if" instead of "else"
-      else if (ch == "!")
-        fieldType = "lava";
-       
-        else if (ch == "y") 
-        fieldType = "floater"; 
+      var ch = line[x],
+        fieldType = null;
 
-       
+      // Use if and else to handle the two cases
+      if (ch == "x") {
+        fieldType = "wall";
+      }
+      // Because there is a third case (space ' '), use an "else if" instead of "else"
+      else if (ch == "!") {
+        fieldType = "lava";
+      } else if (ch == "y") {
+        fieldType = "floater";
+      } else if (ch == '@') {
+        this.player = new Player(new Vector(x, y));
+      }
+
+
+
       // "Push" the fieldType, which is a string, onto the gridLine array (at the end).
       gridLine.push(fieldType);
     }
@@ -38,6 +44,34 @@ function Level(plan) {
     this.grid.push(gridLine);
   }
 }
+
+
+
+function Vector(x, y) {
+  this.x = x;
+  this.y = y;
+}
+
+// vector arithmetic: v_1 + v_2 = <x,y> + <a,b> = <x+0, y+b>
+Vector.prototype.plus = function (other) {
+  var addVector = new Vector(0,0);
+  addVector.x = this.x + other.x;
+  addVector.y = this.y + other.y;
+  return addVector;
+}
+
+///vector arithmetic: v_1 * facotr = <x, y> = factor = <x*factor, y*factor>
+Vector.prototype.times = function (factor) {
+  return new Vector(this.x * factor, this.y * factor);
+}
+//A player has size, speed, and position
+function Player(pos) {
+  this.pos = pos.plus(new Vector(0,-0.5));
+  this.size = new Vector(0.8,1.5);
+  this.speed = new Vector(0,0);
+}
+
+
 
 // Helper function to easily create an element of a type provided 
 // and assign it a class.
@@ -50,7 +84,7 @@ function elt(name, className) {
 // Main display class. We keep track of the scroll window using it.
 function DOMDisplay(parent, level) {
 
-// this.wrap corresponds to a div created with class of "game"
+  // this.wrap corresponds to a div created with class of "game"
   this.wrap = parent.appendChild(elt("div", "game"));
   this.level = level;
 
@@ -60,16 +94,62 @@ function DOMDisplay(parent, level) {
 
 var scale = 20;
 
-DOMDisplay.prototype.drawBackground = function() {
+//arrow key code for readability
+var arrowCodes = {37: 'left', 38: 'up', 39: 'right', 40: 'down'};
+
+// this assigns the object that will be updated anytime the player presses an arrow key
+var arrows = trackKeys(arrowCodes);
+
+//translate the codespressed from a key event
+function trackKeys(codes) {
+  var pressed = {}
+
+  //alters the current 'pressed' array which is returned from this function.
+  //the pressed variable persists even ater this function terminates
+  function handler(event) {
+    if (codes.hasOwnProperty(event.keycode)) {
+      // if the event is keydown, set down to true, Else set to false
+      var down = (event.type == 'keydown');
+      pressed[codes[event.keycode]] = down;
+
+      //we don't want the key press to scroll the browser window
+      //this stops the event from continuing to be processed
+      event.preventDefault();
+      console.log(pressed);
+      console.log(arrows);
+    }
+
+  }
+addEventListener('keydown', handler);
+addEventListener('keyup', handler);
+return pressed;
+//draw the player agent
+DOMDisplay.prototype.drawPlayer = function () {
+  //create a new container div for actor dom elements
+  var wrap = elt('div');
+  var actor = this.level.player;
+  var rect = elt('div', 'actor player');
+  rect = wrap.appendChild(rect);
+
+  rect.style.width = actor.size.x * scale + 'px';
+  rect.style.height = actor.size.y * scale + 'px';
+  rect.style.left = actor.pos.x * scale + 'px';
+  rect.style.top = actor.pos.y * scale + 'px';
+
+  return wrap;
+}
+
+
+DOMDisplay.prototype.drawBackground = function () {
   var table = elt("table", "background");
   table.style.width = this.level.width * scale + "px";
 
   // Assign a class to new row element directly from the string from
   // each tile in grid
-  this.level.grid.forEach(function(row) {
+  this.level.grid.forEach(function (row) {
     var rowElt = table.appendChild(elt("tr"));
     rowElt.style.height = scale + "px";
-    row.forEach(function(type) {
+    row.forEach(function (type) {
       rowElt.appendChild(elt("td", type));
     });
   });
@@ -79,6 +159,7 @@ DOMDisplay.prototype.drawBackground = function() {
 // Organize a single level and begin animation
 function runLevel(level, Display) {
   var display = new Display(document.body, level);
+  display.actorLevel = display.wrap.append(display.drawPlayer());
 }
 
 function runGame(plans, Display) {
